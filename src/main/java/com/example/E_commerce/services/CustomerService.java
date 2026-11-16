@@ -1,5 +1,6 @@
 package com.example.E_commerce.services;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -8,11 +9,11 @@ import org.springframework.stereotype.Service;
 import com.example.E_commerce.dto.requests.CustomerRequest;
 import com.example.E_commerce.dto.responses.CustomerResponse;
 import com.example.E_commerce.exception.DuplicateEmailException;
+import com.example.E_commerce.exception.ResourceNotFoundException;
 import com.example.E_commerce.mappers.CustomerMapper;
 import com.example.E_commerce.models.Customer;
 import com.example.E_commerce.repository.CustomerReposity;
 
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 
 @Service 
@@ -36,6 +37,7 @@ public class CustomerService {
         customer.setUserName(request.getUserName());
         customer.setEmail(request.getEmail());
         customer.setPasswordHash(request.getPasswordHash());
+        customer.setCreatedAt(LocalDateTime.now());
 
         Customer saved = customerReposity.save(customer);
 
@@ -48,12 +50,34 @@ public class CustomerService {
 
     @Transactional 
     public CustomerResponse getById(Long id){
-        return customerMapper.toResponse(getEntity(id));
+        Customer customer = getEntity(id);
+
+        return customerMapper.toResponse(customer);
+    }
+
+    public CustomerResponse update(Long id, CustomerRequest request){
+
+        Customer customer = getEntity(id);
+
+        customer.setUserName(request.getUserName());
+        customer.setEmail(request.getEmail());
+        customer.setPasswordHash(request.getPasswordHash());
+
+        Customer saved = customerReposity.save(customer);
+
+        return customerMapper.toResponse(saved);
+        
+    }
+
+    public void delete(Long id){
+        Customer customer = getEntity(id);
+
+        customerReposity.delete(customer);
     }
 
     private Customer getEntity(Long id){
         return customerReposity.findById(id)
-                               .orElseThrow(() -> new EntityNotFoundException("Customer not found"));
+                               .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
     }
 
 }

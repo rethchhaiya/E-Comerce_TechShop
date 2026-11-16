@@ -8,8 +8,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -32,6 +30,6 @@ public class Customer {
     @Column(name = "passwordHash")
     private String passwordHash;
 
-    @Column(name = "createAt")
+    @Column(name = "createdAt")
     private LocalDateTime createdAt;
 }
