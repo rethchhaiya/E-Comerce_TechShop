@@ -18,6 +18,10 @@ public class CustomerRequest {
     @Email 
     private String email;
 
+    @NotBlank
+    @Size(max = 20)
+    private String phone;
+
     @NotBlank 
     @Size(min = 8, max = 100)
     private String passwordHash;

@@ -36,6 +36,7 @@ public class CustomerService {
 
         customer.setUserName(request.getUserName());
         customer.setEmail(request.getEmail());
+        customer.setPhone(request.getPhone());
         customer.setPasswordHash(request.getPasswordHash());
         customer.setCreatedAt(LocalDateTime.now());
 
@@ -61,6 +62,7 @@ public class CustomerService {
 
         customer.setUserName(request.getUserName());
         customer.setEmail(request.getEmail());
+        customer.setPhone(request.getPhone());
         customer.setPasswordHash(request.getPasswordHash());
 
         Customer saved = customerReposity.save(customer);

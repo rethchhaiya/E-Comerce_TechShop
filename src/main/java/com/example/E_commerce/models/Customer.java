@@ -30,6 +30,9 @@ public class Customer {
     @Column(name = "passwordHash")
     private String passwordHash;
 
+    @Column(name = "phone")
+    private String phone;
+
     @Column(name = "createdAt")
     private LocalDateTime createdAt;
 }
