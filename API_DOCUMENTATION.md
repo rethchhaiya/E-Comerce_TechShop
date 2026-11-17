@@ -22,7 +22,7 @@ All business errors use this shape:
 
 | HTTP status | error value | Meaning |
 | --- | --- | --- |
-| 400 | Bad request | Invalid parent category, invalid sort field, or invalid sort direction |
+| 400 | Bad request | Invalid parent category, invalid sort field, invalid sort direction, or password longer than 72 bytes |
 | 404 | Not found | Customer, category, product, or parent category not found |
 | 409 | Duplicate | Email, slug, or product name already used |
 | 409 | Conflict | Category cannot be deleted because it still has products |
@@ -39,7 +39,7 @@ All business errors use this shape:
 | userName | string | yes | `"Reth Chhaiya"` | Max 100 characters |
 | email | string | yes | `"reth@example.com"` | Must be a valid email address |
 | phone | string | yes | `"012345678"` | Max 20 characters |
-| passwordHash | string | yes | `"mysecret123"` | 8 to 100 characters |
+| password | string | yes | `"mysecret123"` | Plain-text password. 8 characters minimum, 72 bytes maximum. The server stores a BCrypt hash |
 
 ### Customer response fields
 
@@ -51,7 +51,7 @@ All business errors use this shape:
 | phone | string | `"012345678"` | |
 | createdAt | string | `"2026-11-16T17:50:18.974963"` | ISO date-time, set by the server |
 
-`passwordHash` is never returned in responses.
+The server stores `password` as a BCrypt hash; the hash is never returned in responses.
 
 ### POST /api/customer
 
@@ -62,7 +62,7 @@ Create a customer. Returns `201 Created`.
   "userName": "Reth Chhaiya",
   "email": "reth@example.com",
   "phone": "012345678",
-  "passwordHash": "mysecret123"
+  "password": "mysecret123"
 }
 ```
 
@@ -125,7 +125,7 @@ Example: `PUT /api/customer/1`
   "userName": "Reth Chhaiya Jr",
   "email": "reth.jr@example.com",
   "phone": "987654321",
-  "passwordHash": "newsecret123"
+  "password": "newsecret123"
 }
 ```
 
@@ -140,6 +140,8 @@ Response:
   "createdAt": "2026-11-16T17:50:18.974963"
 }
 ```
+
+Send the plain-text password again; the server stores a new BCrypt hash.
 
 Errors: `404` with message `Customer not found`. Note: this endpoint does not check whether the new email is already used, so changing it to an existing email will fail at the database level.
 

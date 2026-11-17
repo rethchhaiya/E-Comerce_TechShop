@@ -1,14 +1,17 @@
 package com.example.E_commerce.services;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.example.E_commerce.dto.requests.CustomerRequest;
 import com.example.E_commerce.dto.responses.CustomerResponse;
 import com.example.E_commerce.exception.DuplicateEmailException;
+import com.example.E_commerce.exception.InvalidPasswordException;
 import com.example.E_commerce.exception.ResourceNotFoundException;
 import com.example.E_commerce.mappers.CustomerMapper;
 import com.example.E_commerce.models.Customer;
@@ -21,10 +24,12 @@ public class CustomerService {
 
     private final CustomerReposity customerReposity;
     private final CustomerMapper customerMapper;
+    private final PasswordEncoder passwordEncoder;
 
-    public CustomerService(CustomerReposity customerReposity, CustomerMapper customerMapper){
+    public CustomerService(CustomerReposity customerReposity, CustomerMapper customerMapper, PasswordEncoder passwordEncoder){
         this.customerReposity = customerReposity;
         this.customerMapper = customerMapper;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public CustomerResponse create(CustomerRequest request){
@@ -37,7 +42,7 @@ public class CustomerService {
         customer.setUserName(request.getUserName());
         customer.setEmail(request.getEmail());
         customer.setPhone(request.getPhone());
-        customer.setPasswordHash(request.getPasswordHash());
+        customer.setPasswordHash(encodePassword(request.getPassword()));
         customer.setCreatedAt(LocalDateTime.now());
 
         Customer saved = customerReposity.save(customer);
@@ -63,7 +68,7 @@ public class CustomerService {
         customer.setUserName(request.getUserName());
         customer.setEmail(request.getEmail());
         customer.setPhone(request.getPhone());
-        customer.setPasswordHash(request.getPasswordHash());
+        customer.setPasswordHash(encodePassword(request.getPassword()));
 
         Customer saved = customerReposity.save(customer);
 
@@ -80,6 +85,13 @@ public class CustomerService {
     private Customer getEntity(Long id){
         return customerReposity.findById(id)
                                .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
+    }
+
+    private String encodePassword(String rawPassword){
+        if(rawPassword.getBytes(StandardCharsets.UTF_8).length > 72){
+            throw new InvalidPasswordException("Password must be at most 72 bytes");
+        }
+        return passwordEncoder.encode(rawPassword);
     }
 
 }
