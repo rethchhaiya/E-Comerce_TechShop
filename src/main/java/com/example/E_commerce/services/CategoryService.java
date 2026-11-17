@@ -7,21 +7,25 @@ import org.springframework.stereotype.Service;
 
 import com.example.E_commerce.dto.requests.CategoryRequest;
 import com.example.E_commerce.dto.responses.CategoryResponse;
+import com.example.E_commerce.exception.CategoryHasProductsException;
 import com.example.E_commerce.exception.DuplicateSlugException;
 import com.example.E_commerce.exception.InvalidParentCategoryException;
 import com.example.E_commerce.exception.ResourceNotFoundException;
 import com.example.E_commerce.mappers.CategoryMapper;
 import com.example.E_commerce.models.Category;
 import com.example.E_commerce.repository.CategoryRepository;
+import com.example.E_commerce.repository.ProductRepository;
 
 @Service
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final ProductRepository productRepository;
     private final CategoryMapper categoryMapper;
 
-    public CategoryService(CategoryRepository categoryRepository, CategoryMapper categoryMapper){
+    public CategoryService(CategoryRepository categoryRepository, ProductRepository productRepository, CategoryMapper categoryMapper){
         this.categoryRepository = categoryRepository;
+        this.productRepository = productRepository;
         this.categoryMapper = categoryMapper;
     }
 
@@ -68,7 +72,13 @@ public class CategoryService {
     }
 
     public void delete(Long id){
-        categoryRepository.delete(getEntity(id));
+        Category category = getEntity(id);
+
+        if(productRepository.existsByCategoryId(id)){
+            throw new CategoryHasProductsException("Cannot delete category with id: " + id + " because it still has products");
+        }
+
+        categoryRepository.delete(category);
     }
 
     private Category getEntity(Long id){

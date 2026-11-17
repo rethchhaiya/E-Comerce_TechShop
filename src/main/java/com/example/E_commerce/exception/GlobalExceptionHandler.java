@@ -51,4 +51,34 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
+
+    @ExceptionHandler(DuplicateProductNameException.class)
+    public ResponseEntity<Map<String, Object>> handleDuplicateProductName(DuplicateProductNameException exception){
+        Map<String, Object> body = new HashMap<>();
+        body.put("status", 409);
+        body.put("error", "Duplicate");
+        body.put("message", exception.getMessage());
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    @ExceptionHandler(InvalidSortException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidSort(InvalidSortException exception){
+        Map<String, Object> body = new HashMap<>();
+        body.put("status", 400);
+        body.put("error", "Bad request");
+        body.put("message", exception.getMessage());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    @ExceptionHandler(CategoryHasProductsException.class)
+    public ResponseEntity<Map<String, Object>> handleCategoryHasProducts(CategoryHasProductsException exception){
+        Map<String, Object> body = new HashMap<>();
+        body.put("status", 409);
+        body.put("error", "Conflict");
+        body.put("message", exception.getMessage());
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
 }
