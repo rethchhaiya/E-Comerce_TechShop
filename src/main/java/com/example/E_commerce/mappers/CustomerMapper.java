@@ -15,7 +15,8 @@ public class CustomerMapper {
             customer.getUserName(),
             customer.getEmail(),
             customer.getPhone(),
-            customer.getCreatedAt()
+            customer.getCreatedAt(),
+            customer.getRole()
         );
         return response;
 

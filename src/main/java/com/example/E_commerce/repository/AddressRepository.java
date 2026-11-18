@@ -11,6 +11,7 @@ import com.example.E_commerce.models.Address;
 
 public interface AddressRepository extends JpaRepository<Address, Long>{
     List<Address> findByCustomerId(Long customerId);
+    List<Address> findByCustomerIdOrderByIdAsc(Long customerId);
 
     // use it when customer want to delete default address entirely
     @Modifying // this tell JPA that this method change data in Data base

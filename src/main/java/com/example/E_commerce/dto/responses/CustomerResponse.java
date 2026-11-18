@@ -2,6 +2,8 @@ package com.example.E_commerce.dto.responses;
 
 import java.time.LocalDateTime;
 
+import com.example.E_commerce.models.Role;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,4 +17,5 @@ public class CustomerResponse {
     private String email;
     private String phone;
     private LocalDateTime createdAt;
+    private Role role;
 }

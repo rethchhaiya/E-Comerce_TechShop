@@ -18,10 +18,12 @@ import com.example.E_commerce.dto.requests.AddressRequest;
 import com.example.E_commerce.dto.responses.AddressResponse;
 import com.example.E_commerce.services.AddressService;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/address")
+@Tag(name = "Addresses", description = "Customer shipping addresses")
 public class AddressController {
 
     private final AddressService addressService;

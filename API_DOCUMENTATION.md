@@ -2,9 +2,102 @@
 
 Base URL: `http://localhost:8080`
 
-Authentication: none
+Interactive docs: `http://localhost:8080/swagger-ui.html` (OpenAPI JSON at `/v3/api-docs`). Click **Authorize** and paste the JWT to call protected endpoints.
+
+Authentication: Bearer JWT (`Authorization: Bearer <token>`), except for public endpoints listed below.
 
 Request/response format: `application/json`
+
+---
+
+## Authentication
+
+### Roles
+
+| Role | Description |
+| --- | --- |
+| `USER` | Default role for registered customers. Can manage their own profile and their own addresses, and read the catalog |
+| `ADMIN` | Full access to customers, categories, products, and addresses |
+
+Tokens expire after 60 minutes by default (`JWT_EXPIRATION_MINUTES`). Send the token on every protected request:
+
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
+```
+
+### Public endpoints
+
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/product`, `GET /api/product/{id}`
+- `GET /api/category`, `GET /api/category/{id}`
+
+Everything else requires a token.
+
+### POST /api/auth/register
+
+Register a customer. The account is always created with role `USER`. Returns `201 Created` with the customer.
+
+Request body is the same as `POST /api/customer`:
+
+```json
+{
+  "userName": "Reth Chhaiya",
+  "email": "reth@example.com",
+  "phone": "012345678",
+  "password": "mysecret123"
+}
+```
+
+Errors: `409` with message `Email already exist`.
+
+### POST /api/auth/login
+
+Returns `200 OK` with a JWT.
+
+```json
+{
+  "email": "reth@example.com",
+  "password": "mysecret123"
+}
+```
+
+Response:
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiJ9...",
+  "tokenType": "Bearer",
+  "expiresIn": 3600
+}
+```
+
+Error: `401` with message `Invalid email or password`.
+
+### Authorization matrix
+
+| Endpoint | Public | USER | ADMIN |
+| --- | --- | --- | --- |
+| POST `/api/auth/register`, `/api/auth/login` | yes | — | — |
+| GET `/api/product*`, `/api/category*` | yes | yes | yes |
+| POST/PUT/DELETE product, category | no | no | yes |
+| GET `/api/customer` (list) | no | no | yes |
+| POST `/api/customer` | no | no | yes |
+| GET/PUT `/api/customer/me` | no | self | self |
+| GET/PUT `/api/customer/{id}` | no | self only | any |
+| DELETE `/api/customer/{id}` | no | no | yes |
+| PUT `/api/customer/{id}/role` | no | no | yes |
+| POST `/api/address` | no | own `customerId` only | any customer |
+| GET `/api/address` | no | own addresses only | all or filtered |
+| GET/PUT/DELETE `/api/address/{id}` | no | owner only | any |
+
+Requests for another customer's profile or address return `404` to avoid revealing that the resource exists. Missing or invalid tokens return `401`; insufficient roles return `403`.
+
+An initial admin can be bootstrapped with the `ADMIN_EMAIL` and `ADMIN_PASSWORD` environment variables, or by promoting an existing customer:
+
+```sql
+UPDATE customers SET role = 'ADMIN' WHERE email = 'admin@example.com';
+```
 
 ---
 
@@ -23,7 +116,9 @@ All business errors use this shape:
 | HTTP status | error value | Meaning |
 | --- | --- | --- |
 | 400 | Bad request | Invalid parent category, invalid sort field, invalid sort direction, or password longer than 72 bytes |
-| 404 | Not found | Customer, category, product, address, or parent category not found |
+| 401 | Unauthorized | Missing or invalid token, or invalid login credentials |
+| 403 | Forbidden | The token's role or ownership does not allow the operation |
+| 404 | Not found | Customer, category, product, address, or parent category not found; also returned when a USER requests another customer's profile or address |
 | 409 | Duplicate | Email, slug, or product name already used |
 | 409 | Conflict | Category cannot be deleted because it still has products |
 | 400 | (Spring default) | Missing or invalid request fields |
@@ -41,6 +136,8 @@ All business errors use this shape:
 | phone | string | yes | `"012345678"` | Max 20 characters |
 | password | string | yes | `"mysecret123"` | Plain-text password. 8 characters minimum, 72 bytes maximum. The server stores a BCrypt hash |
 
+`role` is assigned by the server and is never accepted in request bodies.
+
 ### Customer response fields
 
 | Field | Type | Example | Notes |
@@ -50,8 +147,13 @@ All business errors use this shape:
 | email | string | `"reth@example.com"` | |
 | phone | string | `"012345678"` | |
 | createdAt | string | `"2026-11-16T17:50:18.974963"` | ISO date-time, set by the server |
+| role | string | `"USER"` | `ADMIN` or `USER`. Assigned by the server |
 
 The server stores `password` as a BCrypt hash; the hash is never returned in responses.
+
+### POST /api/customer
+
+Create a customer. **ADMIN only.** The account is created with role `USER`; use `PUT /api/customer/{id}/role` to promote it, or `POST /api/auth/register` for public registration. Returns `201 Created`.
 
 ### POST /api/customer
 
@@ -74,7 +176,8 @@ Response:
   "userName": "Reth Chhaiya",
   "email": "reth@example.com",
   "phone": "012345678",
-  "createdAt": "2026-11-16T17:50:18.974963"
+  "createdAt": "2026-11-16T17:50:18.974963",
+  "role": "USER"
 }
 ```
 
@@ -82,7 +185,7 @@ Error: `409` with message `Email already exist`.
 
 ### GET /api/customer
 
-Returns `200 OK` with an array of customers. Empty array if none exist.
+**ADMIN only.** Returns `200 OK` with an array of customers. Empty array if none exist.
 
 ```json
 [
@@ -91,14 +194,15 @@ Returns `200 OK` with an array of customers. Empty array if none exist.
     "userName": "Reth Chhaiya",
     "email": "reth@example.com",
     "phone": "012345678",
-    "createdAt": "2026-11-16T17:50:18.974963"
+    "createdAt": "2026-11-16T17:50:18.974963",
+    "role": "USER"
   }
 ]
 ```
 
 ### GET /api/customer/{id}
 
-Returns `200 OK` with one customer.
+Returns `200 OK` with one customer. A `USER` can read only their own profile; `ADMIN` can read any profile.
 
 Example: `GET /api/customer/1`
 
@@ -108,15 +212,16 @@ Example: `GET /api/customer/1`
   "userName": "Reth Chhaiya",
   "email": "reth@example.com",
   "phone": "012345678",
-  "createdAt": "2026-11-16T17:50:18.974963"
+  "createdAt": "2026-11-16T17:50:18.974963",
+  "role": "USER"
 }
 ```
 
-Error: `404` with message `Customer not found`.
+Error: `404` with message `Customer not found`. Also returned when a `USER` requests another customer's profile.
 
 ### PUT /api/customer/{id}
 
-Update all fields of a customer. Send the same body as POST. Returns `200 OK` with the updated customer.
+Update all fields of a customer. A `USER` can update only their own profile; `ADMIN` can update any profile. Send the same body as POST. Returns `200 OK` with the updated customer.
 
 Example: `PUT /api/customer/1`
 
@@ -137,17 +242,40 @@ Response:
   "userName": "Reth Chhaiya Jr",
   "email": "reth.jr@example.com",
   "phone": "987654321",
-  "createdAt": "2026-11-16T17:50:18.974963"
+  "createdAt": "2026-11-16T17:50:18.974963",
+  "role": "USER"
 }
 ```
 
-Send the plain-text password again; the server stores a new BCrypt hash.
+Send the plain-text password again; the server stores a new BCrypt hash. `role` cannot be changed through this endpoint.
 
-Errors: `404` with message `Customer not found`. Note: this endpoint does not check whether the new email is already used, so changing it to an existing email will fail at the database level.
+Errors:
+- `404` with message `Customer not found` (also when a `USER` targets another customer)
+- `409` with message `Email already exist`
+
+### GET /api/customer/me
+
+Returns `200 OK` with the authenticated customer's profile.
+
+### PUT /api/customer/me
+
+Updates the authenticated customer's profile. Send the same body as `PUT /api/customer/{id}`.
+
+### PUT /api/customer/{id}/role
+
+**ADMIN only.** Change a customer's role.
+
+```json
+{
+  "role": "ADMIN"
+}
+```
+
+Returns `200 OK` with the updated customer. Error: `404` with message `Customer not found`.
 
 ### DELETE /api/customer/{id}
 
-Returns `200 OK` with an empty body.
+**ADMIN only.** Returns `200 OK` with an empty body. A `USER` cannot delete their own account.
 
 Example: `DELETE /api/customer/1`
 
@@ -161,7 +289,7 @@ Error: `404` with message `Customer not found`.
 
 | Field | Type | Required | Example | Notes |
 | --- | --- | --- | --- | --- |
-| customerId | number | yes | `1` | ID of an existing customer |
+| customerId | number | yes | `1` | ID of an existing customer. A `USER` must use their own customer ID; `ADMIN` can use any |
 | recipientName | string | yes | `"Reth Chhaiya"` | Max 255 characters |
 | phone | string | yes | `"012345678"` | Max 20 characters |
 | addressLine | string | yes | `"Street 1, Sangkat 2"` | Max 255 characters |
@@ -180,11 +308,11 @@ Error: `404` with message `Customer not found`.
 | addressLine | string | `"Street 1, Sangkat 2"` | |
 | city | string | `"Phnom Penh"` | |
 | province | string | `"Phnom Penh"` | |
-| isDefault | boolean | `true` | A customer has at most one default address |
+| isDefault | boolean | `true` | A customer has at most one default address. Deleting the default promotes the remaining address with the lowest id |
 
 ### POST /api/address
 
-Create an address. Returns `201 Created`.
+Create an address for the authenticated `USER`, or for any customer when called by an `ADMIN`. Returns `201 Created`.
 
 ```json
 {
@@ -213,21 +341,23 @@ Response:
 }
 ```
 
-Error: `404` with message `Customer not found`.
+Errors:
+- `403` when a `USER` uses another customer's `customerId`
+- `404` with message `Customer not found` (`ADMIN` only)
 
 ### GET /api/address
 
-Returns `200 OK` with an array of addresses. Empty array if none exist.
+Returns `200 OK` with an array of addresses. Empty array if none exist. A `USER` only ever receives their own addresses; `ADMIN` receives all addresses or filters by `customerId`.
 
 Query parameters:
 
 | Parameter | Type | Default | Example | Notes |
 | --- | --- | --- | --- | --- |
-| customerId | number | not set | `1` | When set, only addresses belonging to this customer are returned |
+| customerId | number | not set | `1` | `ADMIN` only. When set, only addresses belonging to this customer are returned. Ignored for `USER` |
 
 Examples:
 - `GET /api/address`
-- `GET /api/address?customerId=1`
+- `GET /api/address?customerId=1` (`ADMIN`)
 
 ```json
 [
@@ -246,7 +376,7 @@ Examples:
 
 ### GET /api/address/{id}
 
-Returns `200 OK` with one address.
+Returns `200 OK` with one address. A `USER` can read only their own addresses; `ADMIN` can read any.
 
 Example: `GET /api/address/1`
 
@@ -263,11 +393,11 @@ Example: `GET /api/address/1`
 }
 ```
 
-Error: `404` with message `Address not found with id: 999`.
+Error: `404` with message `Address not found with id: 999` (also when a `USER` requests another customer's address).
 
 ### PUT /api/address/{id}
 
-Update all fields of an address. Send the same body as POST. Returns `200 OK` with the updated address.
+Update all fields of an address. A `USER` can update only their own addresses; `ADMIN` can update any. Send the same body as POST. Returns `200 OK` with the updated address.
 
 Example: `PUT /api/address/1`
 
@@ -299,22 +429,27 @@ Response:
 ```
 
 Errors:
-- `404` with message `Address not found with id: 999`
-- `404` with message `Customer not found`
+- `404` with message `Address not found with id: 999` (also when a `USER` targets another customer's address)
+- `403` when a `USER` tries to move an address to another customer
+- `404` with message `Customer not found` (`ADMIN` only)
 
 Note: if `isDefault` is omitted, the current value is kept. Setting it to `true` unsets the customer's previous default address.
 
 ### DELETE /api/address/{id}
 
-Returns `200 OK` with an empty body.
+Returns `200 OK` with an empty body. A `USER` can delete only their own addresses; `ADMIN` can delete any.
+
+If the deleted address was the default, the remaining address with the lowest id for that customer becomes the new default.
 
 Example: `DELETE /api/address/1`
 
-Error: `404` with message `Address not found with id: 999`.
+Error: `404` with message `Address not found with id: 999` (also when a `USER` targets another customer's address).
 
 ---
 
 ## Categories
+
+`GET /api/category` and `GET /api/category/{id}` are public. `POST`, `PUT`, and `DELETE` require `ADMIN`.
 
 ### Category fields (used by POST and PUT)
 
@@ -457,6 +592,8 @@ Errors:
 ---
 
 ## Products
+
+`GET /api/product` and `GET /api/product/{id}` are public. `POST`, `PUT`, and `DELETE` require `ADMIN`.
 
 ### Product fields (used by POST and PUT)
 
