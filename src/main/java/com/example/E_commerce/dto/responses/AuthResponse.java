@@ -1,0 +1,13 @@
+package com.example.E_commerce.dto.responses;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data 
+@NoArgsConstructor
+@AllArgsConstructor  
+public class AuthResponse {
+    CustomerResponse customerResponse;
+    TokenResponse tokenResponse;    
+}

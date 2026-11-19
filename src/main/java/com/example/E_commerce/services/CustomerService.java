@@ -90,6 +90,18 @@ public class CustomerService {
 
         return customerMapper.toResponse(saved);
         
+        /*
+        with out toResponse method we would need to write this every time
+        return new CustomerResponse(
+            saved.getId(),
+            saved.getUserName(),
+            saved.getEmail(),
+            saved.getPhone(),
+            saved.getCreatedAt(),
+            saved.getRole()
+        );
+        */
+        
     }
 
     @Transactional

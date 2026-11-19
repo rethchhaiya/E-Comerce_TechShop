@@ -36,7 +36,7 @@ Everything else requires a token.
 
 ### POST /api/auth/register
 
-Register a customer. The account is always created with role `USER`. Returns `201 Created` with the customer.
+Register a customer and log them in. The account is always created with role `USER`. Returns `201 Created` with the customer and a JWT, so the client can store the token and call protected endpoints without a separate `POST /api/auth/login`.
 
 Request body is the same as `POST /api/customer`:
 
@@ -46,6 +46,26 @@ Request body is the same as `POST /api/customer`:
   "email": "reth@example.com",
   "phone": "012345678",
   "password": "mysecret123"
+}
+```
+
+Response:
+
+```json
+{
+  "customerResponse": {
+    "id": 1,
+    "userName": "Reth Chhaiya",
+    "email": "reth@example.com",
+    "phone": "012345678",
+    "createdAt": "2026-11-16T17:50:18.974963",
+    "role": "USER"
+  },
+  "tokenResponse": {
+    "token": "eyJhbGciOiJIUzI1NiJ9...",
+    "tokenType": "Bearer",
+    "expiresIn": 3600
+  }
 }
 ```
 

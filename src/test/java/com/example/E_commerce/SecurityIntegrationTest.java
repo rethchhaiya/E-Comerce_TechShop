@@ -16,11 +16,13 @@ import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.E_commerce.models.Customer;
 import com.example.E_commerce.models.Role;
 import com.example.E_commerce.repository.CustomerRepository;
+import com.jayway.jsonpath.JsonPath;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -56,6 +58,35 @@ class SecurityIntegrationTest {
     void protectedEndpointsRequireAuthentication() throws Exception {
         mockMvc.perform(get("/api/customer")).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/address")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void registerReturnsCustomerAndUsableToken() throws Exception {
+        String body = "{" +
+            "\"userName\":\"New User\"," +
+            "\"email\":\"new@test.local\"," +
+            "\"phone\":\"012345678\"," +
+            "\"password\":\"password123\"" +
+        "}";
+
+        MvcResult result = mockMvc.perform(post("/api/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.customerResponse.email").value("new@test.local"))
+            .andExpect(jsonPath("$.customerResponse.role").value("USER"))
+            .andExpect(jsonPath("$.tokenResponse.token").isNotEmpty())
+            .andExpect(jsonPath("$.tokenResponse.tokenType").value("Bearer"))
+            .andExpect(jsonPath("$.tokenResponse.expiresIn").isNumber())
+            .andReturn();
+
+        String token = JsonPath.read(result.getResponse().getContentAsString(), "$.tokenResponse.token");
+
+        mockMvc.perform(get("/api/customer/me")
+                .header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.email").value("new@test.local"))
+            .andExpect(jsonPath("$.role").value("USER"));
     }
 
     @Test

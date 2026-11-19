@@ -5,9 +5,11 @@ import org.springframework.stereotype.Service;
 
 import com.example.E_commerce.dto.requests.CustomerRequest;
 import com.example.E_commerce.dto.requests.LoginRequest;
+import com.example.E_commerce.dto.responses.AuthResponse;
 import com.example.E_commerce.dto.responses.CustomerResponse;
 import com.example.E_commerce.dto.responses.TokenResponse;
 import com.example.E_commerce.exception.InvalidCredentialsException;
+import com.example.E_commerce.exception.ResourceNotFoundException;
 import com.example.E_commerce.models.Customer;
 import com.example.E_commerce.repository.CustomerRepository;
 import com.example.E_commerce.security.JwtService;
@@ -27,8 +29,13 @@ public class AuthService {
         this.jwtService = jwtService;
     }
 
-    public CustomerResponse register(CustomerRequest request){
-        return customerService.create(request);
+    public AuthResponse register(CustomerRequest request){
+        CustomerResponse customerResponse = customerService.create(request);
+
+        Customer customer = customerReposity.findByEmail(request.getEmail())
+                                             .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
+
+        return new AuthResponse(customerResponse, jwtService.generateToken(customer));
     }
 
     public TokenResponse login(LoginRequest request){

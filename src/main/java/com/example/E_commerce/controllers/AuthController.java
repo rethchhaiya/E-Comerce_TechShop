@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.E_commerce.dto.requests.CustomerRequest;
 import com.example.E_commerce.dto.requests.LoginRequest;
-import com.example.E_commerce.dto.responses.CustomerResponse;
+import com.example.E_commerce.dto.responses.AuthResponse;
 import com.example.E_commerce.dto.responses.TokenResponse;
 import com.example.E_commerce.services.AuthService;
 
@@ -28,7 +28,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<CustomerResponse> register(@Valid @RequestBody CustomerRequest request){
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody CustomerRequest request){
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
     }
 
