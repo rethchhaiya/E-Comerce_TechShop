@@ -11,8 +11,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice 
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(DuplicateEmailException.class)
-    public ResponseEntity<Map<String, Object>> handleDuplicate(DuplicateEmailException exception){
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<Map<String, Object>> handleDuplicate(DuplicateResourceException exception){
 
         Map<String, Object> body = new HashMap<>();
         body.put("status", 409);
@@ -32,15 +32,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
     }
 
-    @ExceptionHandler(DuplicateSlugException.class)
-    public ResponseEntity<Map<String, Object>> handleDuplicateSlug(DuplicateSlugException exception){
-        Map<String, Object> body = new HashMap<>();
-        body.put("status", 409);
-        body.put("error", "Duplicate");
-        body.put("message", exception.getMessage());
+    // @ExceptionHandler(DuplicateSlugException.class)
+    // public ResponseEntity<Map<String, Object>> handleDuplicateSlug(DuplicateSlugException exception){
+    //     Map<String, Object> body = new HashMap<>();
+    //     body.put("status", 409);
+    //     body.put("error", "Duplicate");
+    //     body.put("message", exception.getMessage());
 
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
-    }
+    //     return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    // }
 
     @ExceptionHandler(InvalidParentCategoryException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidParent(InvalidParentCategoryException exception){
@@ -52,15 +52,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
-    @ExceptionHandler(DuplicateProductNameException.class)
-    public ResponseEntity<Map<String, Object>> handleDuplicateProductName(DuplicateProductNameException exception){
-        Map<String, Object> body = new HashMap<>();
-        body.put("status", 409);
-        body.put("error", "Duplicate");
-        body.put("message", exception.getMessage());
+    // @ExceptionHandler(DuplicateProductNameException.class)
+    // public ResponseEntity<Map<String, Object>> handleDuplicateProductName(DuplicateProductNameException exception){
+    //     Map<String, Object> body = new HashMap<>();
+    //     body.put("status", 409);
+    //     body.put("error", "Duplicate");
+    //     body.put("message", exception.getMessage());
 
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
-    }
+    //     return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    // }
 
     @ExceptionHandler(InvalidSortException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidSort(InvalidSortException exception){
